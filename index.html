@@ -3,10 +3,14 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Unity Web Player | QuizShow</title>
+    <title>숏폼형 퀴즈 솔루션 왓퀴즈!</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
     <link rel="manifest" href="manifest.webmanifest">
+    <!-- 캐시 방지를 위한 메타 태그 추가 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
   </head>
   <body>
     <div id="unity-container">
@@ -57,12 +61,12 @@
       }
 
       var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/WhatQuizShow.loader.js";
+      var loaderUrl = buildUrl + "/WhatQuizShow.loader.js" + "?v=" + Date.now();
       var config = {
         arguments: [],
-        dataUrl: buildUrl + "/WhatQuizShow.data",
-        frameworkUrl: buildUrl + "/WhatQuizShow.framework.js",
-        codeUrl: buildUrl + "/WhatQuizShow.wasm",
+        dataUrl: buildUrl + "/WhatQuizShow.data" + "?v=" + Date.now(),
+        frameworkUrl: buildUrl + "/WhatQuizShow.framework.js" + "?v=" + Date.now(),
+        codeUrl: buildUrl + "/WhatQuizShow.wasm" + "?v=" + Date.now(),
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "QuizShow",
