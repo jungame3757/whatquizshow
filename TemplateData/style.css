@@ -1,8 +1,74 @@
-body { padding: 0; margin: 0 }
-#unity-container { position: fixed; width: 100%; height: 100%; }
-#unity-canvas { width: 100%; height: 100%; background: #231F20 }
-#unity-loading-bar { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: none }
-#unity-logo { width: 154px; height: 130px; background: url('unity-logo-dark.png') no-repeat center }
-#unity-progress-bar-empty { margin-left: auto; margin-right: auto; width: 141px; height: 18px; margin-top: 10px; background: url('progress-bar-empty-dark.png') no-repeat center }
-#unity-progress-bar-full { width: 0%; height: 18px; margin-top: 10px; background: url('progress-bar-full-dark.png') no-repeat center }
-#unity-warning { position: absolute; left: 50%; top: 5%; transform: translate(-50%); background: white; padding: 10px; display: none }
+body {
+    padding: 0;
+    margin: 0
+}
+
+#unity-container {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+}
+
+#unity-canvas {
+    width: 100%;
+    height: 100%;
+    background: #FFFFFF
+}
+
+#unity-loading-bar {
+    position: absolute;
+    left: 50%;
+    top: 35%;
+    transform: translate(-50%, -50%);
+    display: none;
+    width: 90%;
+    max-width: 600px;
+}
+
+#unity-logo {
+    width: 100%;
+    height: 0;
+    padding-bottom: 50.9%;
+    background: url('Loading.jpg') no-repeat center;
+    background-size: contain;
+}
+
+#unity-progress-bar-empty {
+    margin: 10px auto 0;
+    width: 141px;
+    height: 18px;
+    background: url('progress-bar-empty-light.png') no-repeat center;
+    background-size: 100% 100%;
+    position: relative;
+}
+
+#unity-progress-bar-full {
+    width: 0%;
+    height: 100%;
+    background: url('progress-bar-full-light.png') no-repeat left center;
+    background-size: 100% 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+#unity-warning {
+    position: absolute;
+    left: 50%;
+    top: 5%;
+    transform: translate(-50%);
+    background: white;
+    padding: 10px;
+    display: none;
+    width: 90%;
+    max-width: 600px;
+    text-align: center;
+}
+
+@media screen and (max-width: 768px) {
+    #unity-progress-bar-empty,
+    #unity-progress-bar-full {
+        width: 100px;
+        height: 14px;
+    }
+}
