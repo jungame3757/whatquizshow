@@ -1,114 +1,413 @@
 <!DOCTYPE html>
 <html lang="en-us">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <title>WhatQuizPlayer</title>
-    <link rel="shortcut icon" href="TemplateData/favicon.ico">
-    <link rel="stylesheet" href="TemplateData/style.css">
-    <link rel="manifest" href="manifest.webmanifest">
-    <script type="text/javascript">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <!-- 캐시 제어 헤더 추가 (브라우저 캐싱 방지) -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>WhatQuizPlayer</title>
+  <link rel="shortcut icon" href="TemplateData/favicon.ico">
+  <link rel="manifest" href="manifest.webmanifest">
+  
+  <!-- Firebase SDK 추가 -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  
+  <!-- 플랫 디자인의 화이트 톤 로딩 스타일 -->
+  <style>
+    /* 기본 스타일 초기화 및 전체 화면 설정 */
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #ffffff;
+      font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    }
+
+    /* 유니티 컨테이너 - 항상 전체 화면으로 표시 */
+    #unity-container {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      left: 0;
+      top: 0;
+      background: #ffffff;
+    }
+
+    /* 유니티 캔버스 - 전체 화면으로 설정 */
+    #unity-canvas {
+      width: 100%;
+      height: 100%;
+      background: #ffffff;
+      display: block;
+    }
+
+    /* 로딩 바 컨테이너 - 플랫 디자인 */
+    #unity-loading-bar {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 280px;
+      padding: 20px;
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      text-align: center;
+      z-index: 10;
+    }
+
+    /* 로고 영역 */
+    #unity-logo {
+      width: 100%;
+      height: 80px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      margin-bottom: 16px;
+    }
+
+    /* 로딩 타이틀 */
+    #loading-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #333333;
+      margin-bottom: 24px;
+      letter-spacing: -0.5px;
+    }
+
+    /* 프로그레스 바 배경 */
+    #unity-progress-bar-empty {
+      width: 100%;
+      height: 8px;
+      background-color: #f1f1f1;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    /* 프로그레스 바 채움 - 캐주얼한 컬러 */
+    #unity-progress-bar-full {
+      width: 0%;
+      height: 100%;
+      border-radius: 10px;
+      background-color: #4B7BEC;
+      transition: width 0.2s ease;
+    }
+
+    /* 로딩 텍스트 */
+    #unity-loading-text {
+      color: #666666;
+      font-size: 14px;
+      margin-top: 14px;
+      font-weight: 500;
+    }
+
+    /* 로딩 점 애니메이션 */
+    #unity-loading-dots {
+      display: inline-block;
+    }
+
+    #unity-loading-dots::after {
+      content: '';
+      animation: dots 1.5s infinite steps(4, end);
+    }
+
+    /* 로딩 아이콘 애니메이션 */
+    #loading-icon {
+      font-size: 36px;
+      margin-bottom: 16px;
+      display: inline-block;
+      animation: bounce 1s infinite alternate ease-in-out;
+      color: #4B7BEC;
+    }
+
+    /* 애니메이션 정의 */
+    @keyframes dots {
+      0%, 25% { content: ''; }
+      25%, 50% { content: '.'; }
+      50%, 75% { content: '..'; }
+      75%, 100% { content: '...'; }
+    }
+
+    @keyframes bounce {
+      from { transform: translateY(0); }
+      to { transform: translateY(-10px); }
+    }
+
+    /* 경고 배너 */
+    #unity-warning {
+      position: absolute;
+      left: 50%;
+      top: 5%;
+      transform: translate(-50%, 0);
+      background: #FF6B6B;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      display: none;
+      font-size: 14px;
+      max-width: 90%;
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* 모바일 최적화 */
+    @media (max-width: 480px) {
+      #unity-loading-bar {
+        width: 85%;
+        padding: 16px;
+      }
+
+      #loading-title {
+        font-size: 20px;
+      }
+    }
+  </style>
+  <script type="text/javascript">
     (function(c,l,a,r,i,t,y){
-        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
     })(window, document, "clarity", "script", "qqg7cwltt7");
-    </script>
-  </head>
-  <body>
-    <div id="unity-container">
-      <canvas id="unity-canvas" width=960 height=600 tabindex="-1"></canvas>
-      <div id="unity-loading-bar">
-        <div id="unity-logo"></div>
-        <div id="unity-progress-bar-empty">
-          <div id="unity-progress-bar-full"></div>
-        </div>
-      </div>
-      <div id="unity-warning"> </div>
+  </script>
+</head>
+<body>
+<div id="unity-container">
+  <canvas id="unity-canvas" tabindex="-1"></canvas>
+  <div id="unity-loading-bar">
+    <div id="loading-icon">🎮</div>
+    <div id="loading-title">왓퀴즈 SHOW</div>
+    <div id="unity-progress-bar-empty">
+      <div id="unity-progress-bar-full"></div>
     </div>
-    <script>
-      window.addEventListener("load", function () {
-        if ("serviceWorker" in navigator) {
-          navigator.serviceWorker.register("ServiceWorker.js");
+    <div id="unity-loading-text">로딩 중<span id="unity-loading-dots"></span> <span id="unity-loading-percentage">0%</span></div>
+  </div>
+  <div id="unity-warning"></div>
+</div>
+
+<!-- Firebase 초기화 스크립트 -->
+<script>
+  // Firebase 초기화
+  const firebaseConfig = {
+    apiKey: "AIzaSyD6we5_LxPdb_8_OJ459GZUMgJK8Y1lqPQ",
+    authDomain: "whatquiztestserver2.firebaseapp.com",
+    projectId: "whatquiztestserver2",
+    databaseURL: "https://whatquiztestserver2.firebaseio.com",
+    storageBucket: "whatquiztestserver2.firebasestorage.app",
+    messagingSenderId: "647603782876",
+    appId: "1:647603782876:web:d60efd4af4e2f3e597e019"
+  };
+
+  // Firebase 초기화
+  firebase.initializeApp(firebaseConfig);
+  
+  // URL 매개변수 확인
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
+  const uid = urlParams.get('uid');
+  const quizId = urlParams.get('quizId');
+  
+  // 인증 정보가 있으면 적용
+  if (token && token.length > 0) {
+    console.log("토큰을 발견했습니다. 인증 적용 중...");
+    try {
+      // 토큰의 타입 구분 (Firebase CustomToken 또는 JWT/ID 토큰)
+      if (token.includes('.')) {
+        // JWT 구조인 경우 signInWithCustomToken보다 localStorage에 직접 저장
+        localStorage.setItem('authToken', token);
+        if (uid) localStorage.setItem('userId', uid);
+        console.log("JWT 토큰 형식 감지, localStorage에 저장됨");
+      } else {
+        // Custom Token인 경우 Firebase 로그인 시도
+        firebase.auth().signInWithCustomToken(token).then(function() {
+          console.log("Firebase Custom Token으로 인증 성공");
+        }).catch(function(error) {
+          console.error("Firebase Custom Token 인증 실패:", error);
+          // 실패하더라도 localStorage에 저장
+          localStorage.setItem('authToken', token);
+          if (uid) localStorage.setItem('userId', uid);
+        });
+      }
+    } catch (e) {
+      console.warn("토큰 적용 오류:", e);
+      // 오류 발생시 localStorage에 저장
+      localStorage.setItem('authToken', token);
+      if (uid) localStorage.setItem('userId', uid);
+    }
+  } else {
+    // 로컬 스토리지에서 토큰 확인
+    const storedToken = localStorage.getItem('authToken');
+    if (storedToken) {
+      console.log("저장된 토큰을 발견했습니다.");
+    }
+  }
+  
+  // 인증 상태 변경 모니터링
+  firebase.auth().onAuthStateChanged(function(user) {
+    if (user) {
+      console.log('로그인됨:', user.uid);
+      // 인증된 상태에서 사용할 전역 변수나 함수 설정
+      window.isAuthenticated = true;
+    } else {
+      console.log('로그인되지 않음');
+      window.isAuthenticated = false;
+    }
+  });
+</script>
+
+<!-- Unity 로드 스크립트 -->
+<script>
+  // 서비스 워커 등록 함수 - 에러 핸들링 추가
+  window.addEventListener("load", function () {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("ServiceWorker.js")
+              .then(function(registration) {
+                console.log('[Main] 서비스 워커 등록 성공:', registration.scope);
+              })
+              .catch(function(error) {
+                console.error('[Main] 서비스 워커 등록 실패:', error);
+              });
+    }
+  });
+
+  var container = document.querySelector("#unity-container");
+  var canvas = document.querySelector("#unity-canvas");
+  var loadingBar = document.querySelector("#unity-loading-bar");
+  var progressBarFull = document.querySelector("#unity-progress-bar-full");
+  var loadingPercentage = document.querySelector("#unity-loading-percentage");
+  var warningBanner = document.querySelector("#unity-warning");
+
+  // 창 크기 변경 시 캔버스 크기 조정 함수
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  // 최초 로드 및 창 크기 변경 시 캔버스 크기 조정
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  // 메시지 배너 표시 함수
+  function unityShowBanner(msg, type) {
+    function updateBannerVisibility() {
+      warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+    }
+    var div = document.createElement('div');
+    div.innerHTML = msg;
+    warningBanner.appendChild(div);
+    if (type == 'error') div.style = 'background: #FF6B6B; padding: 10px;';
+    else {
+      if (type == 'warning') div.style = 'background: #FFBE76; padding: 10px; color: #333;';
+      setTimeout(function() {
+        warningBanner.removeChild(div);
+        updateBannerVisibility();
+      }, 5000);
+    }
+    updateBannerVisibility();
+  }
+
+  var buildUrl = "Build";
+  var loaderUrl = buildUrl + "/WhatQuizShow.loader.js";
+  var config = {
+    arguments: [],
+    dataUrl: buildUrl + "/WhatQuizShow.data",
+    frameworkUrl: buildUrl + "/WhatQuizShow.framework.js",
+    codeUrl: buildUrl + "/WhatQuizShow.wasm",
+    streamingAssetsUrl: "StreamingAssets",
+    companyName: "DefaultCompany",
+    productName: "WhatQuizPlayer",
+    productVersion: "1.0",
+    showBanner: unityShowBanner,
+  };
+
+  // 적응형 해상도를 위한 설정
+  // Unity WebGL 캔버스 렌더링 대상 크기를 DOM 크기와 강제로 동기화
+  config.matchWebGLToCanvasSize = true;
+
+  // 모바일 디바이스에 대한 특별 처리
+  if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+    var meta = document.createElement('meta');
+    meta.name = 'viewport';
+    meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+    document.getElementsByTagName('head')[0].appendChild(meta);
+
+    // 모바일에서 전체 화면을 유지하기 위한 추가 설정
+    container.className = "unity-mobile";
+  }
+
+  loadingBar.style.display = "block";
+
+  // 로컬 스토리지에 현재 버전 확인 및 저장
+  var currentVersion = "1.0.0"; // 앱 버전, 업데이트 시 변경
+  var storedVersion = localStorage.getItem("whatQuizVersion");
+
+  // 버전이 다르면 캐시 버스트 매개변수 추가
+  var cacheBuster = (storedVersion !== currentVersion) ? "?v=" + Date.now() : "";
+  localStorage.setItem("whatQuizVersion", currentVersion);
+
+  // 로더 스크립트 로드
+  var script = document.createElement("script");
+  script.src = loaderUrl + cacheBuster;
+
+  // 오류 처리 추가
+  script.onerror = function() {
+    console.error("Unity 로더 스크립트 로드 실패");
+    unityShowBanner("게임 로딩에 실패했습니다. 페이지를 새로고침 해주세요.", "error");
+  };
+
+  script.onload = function() {
+    // 모든 Unity 관련 URL에 같은 캐시 버스트 매개변수 추가
+    if (cacheBuster) {
+      config.dataUrl = config.dataUrl + cacheBuster;
+      config.frameworkUrl = config.frameworkUrl + cacheBuster;
+      config.codeUrl = config.codeUrl + cacheBuster;
+      config.streamingAssetsUrl = config.streamingAssetsUrl + cacheBuster;
+    }
+
+    // Unity 인스턴스 생성 시작
+    console.log("[Main] Unity 인스턴스 생성 시작");
+    createUnityInstance(canvas, config, function(progress) {
+      // 로딩 진행률 업데이트
+      progressBarFull.style.width = 100 * progress + "%";
+      loadingPercentage.innerHTML = Math.round(progress * 100) + "%";
+    }).then(function(unityInstance) {
+      // 로딩 완료 시 로딩 바 숨김
+      console.log("[Main] Unity 인스턴스 생성 성공");
+      loadingBar.style.display = "none";
+
+      // 전역 변수로 unityInstance 저장 (JavaScript 브릿지에서 사용)
+      window.unityInstance = unityInstance;
+
+      // 전체 화면 처리를 위한 이벤트 리스너
+      window.addEventListener('resize', function() {
+        if (unityInstance) {
+          unityInstance.SendMessage('Canvas', 'OnWindowResize');
         }
       });
 
-      var container = document.querySelector("#unity-container");
-      var canvas = document.querySelector("#unity-canvas");
-      var loadingBar = document.querySelector("#unity-loading-bar");
-      var progressBarFull = document.querySelector("#unity-progress-bar-full");
-      var warningBanner = document.querySelector("#unity-warning");
-
-      // Shows a temporary message banner/ribbon for a few seconds, or
-      // a permanent error message on top of the canvas if type=='error'.
-      // If type=='warning', a yellow highlight color is used.
-      // Modify or remove this function to customize the visually presented
-      // way that non-critical warnings and error messages are presented to the
-      // user.
-      function unityShowBanner(msg, type) {
-        function updateBannerVisibility() {
-          warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
-        }
-        var div = document.createElement('div');
-        div.innerHTML = msg;
-        warningBanner.appendChild(div);
-        if (type == 'error') div.style = 'background: red; padding: 10px;';
-        else {
-          if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
-          setTimeout(function() {
-            warningBanner.removeChild(div);
-            updateBannerVisibility();
-          }, 5000);
-        }
-        updateBannerVisibility();
+      // URL 매개변수가 있는 경우 Unity에 전달
+      if (quizId) {
+        console.log("퀴즈 ID 발견:", quizId, "Unity에 전달");
+        // AppInitializer 또는 적절한 GameObject에 메시지 전달
+        setTimeout(() => {
+          if (unityInstance) {
+            unityInstance.SendMessage('AppInitializer', 'SetQuizId', quizId);
+          }
+        }, 1000); // Unity 초기화를 위한 약간의 지연
       }
+    }).catch(function(message) {
+      console.error("[Main] Unity 인스턴스 생성 실패:", message);
+      unityShowBanner("게임 초기화에 실패했습니다: " + message, "error");
+    });
+  };
 
-      var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/WhatQuizShow.loader.js" + "?v=" + Date.now();
-      var config = {
-        arguments: [],
-        dataUrl: buildUrl + "/WhatQuizShow.data" + "?v=" + Date.now(),
-        frameworkUrl: buildUrl + "/WhatQuizShow.framework.js" + "?v=" + Date.now(),
-        codeUrl: buildUrl + "/WhatQuizShow.wasm" + "?v=" + Date.now(),
-        streamingAssetsUrl: "StreamingAssets",
-        companyName: "DefaultCompany",
-        productName: "QuizShow",
-        productVersion: "1.0",
-        showBanner: unityShowBanner,
-      };
-
-      // By default Unity keeps WebGL canvas render target size matched with
-      // the DOM size of the canvas element (scaled by window.devicePixelRatio)
-      // Set this to false if you want to decouple this synchronization from
-      // happening inside the engine, and you would instead like to size up
-      // the canvas DOM size and WebGL render target sizes yourself.
-      // config.matchWebGLToCanvasSize = false;
-
-      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        // Mobile device style: fill the whole browser client area with the game canvas:
-        var meta = document.createElement('meta');
-        meta.name = 'viewport';
-        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-        document.getElementsByTagName('head')[0].appendChild(meta);
-      }
-
-      loadingBar.style.display = "block";
-
-      var script = document.createElement("script");
-      script.src = loaderUrl;
-      script.onload = () => {
-        createUnityInstance(canvas, config, (progress) => {
-          progressBarFull.style.width = 100 * progress + "%";
-        }).then((unityInstance) => {
-          loadingBar.style.display = "none";
-        }).catch((message) => {
-          alert(message);
-        });
-      };
-      document.body.appendChild(script);
-    </script>
-  </body>
+  document.body.appendChild(script);
+</script>
+</body>
 </html>
