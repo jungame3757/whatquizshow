@@ -408,14 +408,14 @@
 
   // 빌드 URL 경로 설정 (상대 경로와 절대 경로 둘 다 시도)
   function loadUnityGame() {
-    // 기본 경로 시도
+    // 기본 경로 시도 (파일명을 소문자로 수정)
     var buildUrl = "Build";
-    var loaderUrl = buildUrl + "/WhatQuizShow.loader.js";
+    var loaderUrl = buildUrl + "/whatquizshow.loader.js";
     var config = {
       arguments: [],
-      dataUrl: buildUrl + "/WhatQuizShow.data",
-      frameworkUrl: buildUrl + "/WhatQuizShow.framework.js",
-      codeUrl: buildUrl + "/WhatQuizShow.wasm",
+      dataUrl: buildUrl + "/whatquizshow.data",
+      frameworkUrl: buildUrl + "/whatquizshow.framework.js",
+      codeUrl: buildUrl + "/whatquizshow.wasm",
       streamingAssetsUrl: "StreamingAssets",
       companyName: "DefaultCompany",
       productName: "WhatQuizPlayer",
@@ -457,15 +457,15 @@
       
       // 첫 번째 시도 실패 시 대체 경로 시도
       var altBuildUrl = "./Build";
-      var altLoaderUrl = altBuildUrl + "/WhatQuizShow.loader.js";
+      var altLoaderUrl = altBuildUrl + "/whatquizshow.loader.js";
       
       var retryScript = document.createElement("script");
       retryScript.src = altLoaderUrl + cacheBuster;
       
       // 모든 URL 업데이트
-      config.dataUrl = altBuildUrl + "/WhatQuizShow.data";
-      config.frameworkUrl = altBuildUrl + "/WhatQuizShow.framework.js";
-      config.codeUrl = altBuildUrl + "/WhatQuizShow.wasm";
+      config.dataUrl = altBuildUrl + "/whatquizshow.data";
+      config.frameworkUrl = altBuildUrl + "/whatquizshow.framework.js";
+      config.codeUrl = altBuildUrl + "/whatquizshow.wasm";
       config.streamingAssetsUrl = "./StreamingAssets";
       
       retryScript.onerror = function() {
