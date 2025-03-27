@@ -156,15 +156,64 @@
       text-align: center;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
+    
+    /* 오류 표시 화면 */
+    #error-display {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 280px;
+      padding: 20px;
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      text-align: center;
+      z-index: 10;
+      display: none;
+    }
+    
+    #error-icon {
+      font-size: 36px;
+      margin-bottom: 16px;
+      color: #FF6B6B;
+    }
+    
+    #error-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #333333;
+      margin-bottom: 16px;
+    }
+    
+    #error-message {
+      color: #666666;
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom:, 16px;
+    }
+    
+    #retry-button {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #4B7BEC;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 20px;
+    }
 
     /* 모바일 최적화 */
     @media (max-width: 480px) {
-      #unity-loading-bar {
+      #unity-loading-bar, #error-display {
         width: 85%;
         padding: 16px;
       }
 
-      #loading-title {
+      #loading-title, #error-title {
         font-size: 20px;
       }
     }
@@ -189,10 +238,22 @@
     <div id="unity-loading-text">로딩 중<span id="unity-loading-dots"></span> <span id="unity-loading-percentage">0%</span></div>
   </div>
   <div id="unity-warning"></div>
+  
+  <!-- 오류 표시 화면 추가 -->
+  <div id="error-display">
+    <div id="error-icon">⚠️</div>
+    <div id="error-title">로딩 오류</div>
+    <div id="error-message">게임을 로드하는 중 오류가 발생했습니다.</div>
+    <button id="retry-button" onclick="location.reload()">다시 시도</button>
+  </div>
 </div>
 
 <!-- Firebase 초기화 스크립트 -->
 <script>
+  // 개발 모드 확인 (URL에 ?dev=true 파라미터가 있으면 개발 모드)
+  const urlParams = new URLSearchParams(window.location.search);
+  const devMode = urlParams.get('dev') === 'true';
+  
   // Firebase 초기화
   const firebaseConfig = {
     apiKey: "AIzaSyD6we5_LxPdb_8_OJ459GZUMgJK8Y1lqPQ",
@@ -204,14 +265,21 @@
     appId: "1:647603782876:web:d60efd4af4e2f3e597e019"
   };
 
-  // Firebase 초기화
-  firebase.initializeApp(firebaseConfig);
+  // Firebase 초기화 (개발 모드에서도 초기화는 진행)
+  try {
+    firebase.initializeApp(firebaseConfig);
+    console.log("Firebase가 성공적으로 초기화되었습니다.");
+  } catch (error) {
+    console.error("Firebase 초기화 오류:", error);
+  }
   
   // URL 매개변수 확인
-  const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get('token');
   const uid = urlParams.get('uid');
   const quizId = urlParams.get('quizId');
+  
+  // 게스트 ID 생성 (인증 정보가 없을 때 사용)
+  const guestId = 'guest_' + Date.now();
   
   // 인증 정보가 있으면 적용
   if (token && token.length > 0) {
@@ -241,7 +309,11 @@
       if (uid) localStorage.setItem('userId', uid);
     }
   } else {
-    // 로컬 스토리지에서 토큰 확인
+    // 인증 정보가 없는 경우 게스트 ID 사용
+    console.log("인증 정보가 없습니다. 게스트 모드로 진행합니다.");
+    localStorage.setItem('userId', guestId);
+    
+    // 로컬 스토리지에서 이전 토큰 확인
     const storedToken = localStorage.getItem('authToken');
     if (storedToken) {
       console.log("저장된 토큰을 발견했습니다.");
@@ -257,6 +329,11 @@
     } else {
       console.log('로그인되지 않음');
       window.isAuthenticated = false;
+      // 게스트 모드로 설정 (인증이 필요한 기능에서는 제한될 수 있음)
+      if (devMode) {
+        // 개발 모드에서는 항상 인증된 것으로 처리
+        window.isAuthenticated = true;
+      }
     }
   });
 </script>
@@ -265,13 +342,20 @@
 <script>
   // 서비스 워커 등록 함수 - 에러 핸들링 추가
   window.addEventListener("load", function () {
+    // 개발 모드에서는 서비스 워커를 등록하지 않음
+    if (devMode) {
+      console.log("개발 모드: 서비스 워커를 등록하지 않습니다.");
+      return;
+    }
+    
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("ServiceWorker.js")
+      navigator.serviceWorker.register("ServiceWorker.js", { scope: './' })
               .then(function(registration) {
                 console.log('[Main] 서비스 워커 등록 성공:', registration.scope);
               })
               .catch(function(error) {
                 console.error('[Main] 서비스 워커 등록 실패:', error);
+                // 서비스 워커 오류가 있어도 게임은 계속 로드
               });
     }
   });
@@ -282,6 +366,16 @@
   var progressBarFull = document.querySelector("#unity-progress-bar-full");
   var loadingPercentage = document.querySelector("#unity-loading-percentage");
   var warningBanner = document.querySelector("#unity-warning");
+  var errorDisplay = document.querySelector("#error-display");
+
+  // 오류 표시 함수
+  function showError(message) {
+    loadingBar.style.display = "none";
+    errorDisplay.style.display = "block";
+    document.querySelector("#error-message").textContent = message || 
+      "게임을 로드하는 중 오류가 발생했습니다. 페이지를 새로고침하거나 나중에 다시 시도해주세요.";
+    console.error("게임 로드 오류:", message);
+  }
 
   // 창 크기 변경 시 캔버스 크기 조정 함수
   function resizeCanvas() {
@@ -312,102 +406,139 @@
     updateBannerVisibility();
   }
 
-  var buildUrl = "Build";
-  var loaderUrl = buildUrl + "/WhatQuizShow.loader.js";
-  var config = {
-    arguments: [],
-    dataUrl: buildUrl + "/WhatQuizShow.data",
-    frameworkUrl: buildUrl + "/WhatQuizShow.framework.js",
-    codeUrl: buildUrl + "/WhatQuizShow.wasm",
-    streamingAssetsUrl: "StreamingAssets",
-    companyName: "DefaultCompany",
-    productName: "WhatQuizPlayer",
-    productVersion: "1.0",
-    showBanner: unityShowBanner,
-  };
+  // 빌드 URL 경로 설정 (상대 경로와 절대 경로 둘 다 시도)
+  function loadUnityGame() {
+    // 기본 경로 시도
+    var buildUrl = "Build";
+    var loaderUrl = buildUrl + "/WhatQuizShow.loader.js";
+    var config = {
+      arguments: [],
+      dataUrl: buildUrl + "/WhatQuizShow.data",
+      frameworkUrl: buildUrl + "/WhatQuizShow.framework.js",
+      codeUrl: buildUrl + "/WhatQuizShow.wasm",
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: "DefaultCompany",
+      productName: "WhatQuizPlayer",
+      productVersion: "1.0",
+      showBanner: unityShowBanner,
+    };
 
-  // 적응형 해상도를 위한 설정
-  // Unity WebGL 캔버스 렌더링 대상 크기를 DOM 크기와 강제로 동기화
-  config.matchWebGLToCanvasSize = true;
+    // 적응형 해상도를 위한 설정
+    config.matchWebGLToCanvasSize = true;
 
-  // 모바일 디바이스에 대한 특별 처리
-  if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-    var meta = document.createElement('meta');
-    meta.name = 'viewport';
-    meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-    document.getElementsByTagName('head')[0].appendChild(meta);
+    // 모바일 디바이스에 대한 특별 처리
+    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      var meta = document.createElement('meta');
+      meta.name = 'viewport';
+      meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+      document.getElementsByTagName('head')[0].appendChild(meta);
 
-    // 모바일에서 전체 화면을 유지하기 위한 추가 설정
-    container.className = "unity-mobile";
+      // 모바일에서 전체 화면을 유지하기 위한 추가 설정
+      container.className = "unity-mobile";
+    }
+
+    loadingBar.style.display = "block";
+
+    // 로컬 스토리지에 현재 버전 확인 및 저장
+    var currentVersion = "1.0.1"; // 앱 버전, 수정됨
+    var storedVersion = localStorage.getItem("whatQuizVersion");
+
+    // 항상 캐시 버스트 매개변수 추가 (문제 해결을 위해)
+    var cacheBuster = "?v=" + Date.now();
+    localStorage.setItem("whatQuizVersion", currentVersion);
+
+    // 로더 스크립트 로드
+    var script = document.createElement("script");
+    script.src = loaderUrl + cacheBuster;
+
+    // 오류 처리 추가
+    script.onerror = function() {
+      console.error("Unity 로더 스크립트 로드 실패. 다른 경로로 재시도합니다.");
+      
+      // 첫 번째 시도 실패 시 대체 경로 시도
+      var altBuildUrl = "./Build";
+      var altLoaderUrl = altBuildUrl + "/WhatQuizShow.loader.js";
+      
+      var retryScript = document.createElement("script");
+      retryScript.src = altLoaderUrl + cacheBuster;
+      
+      // 모든 URL 업데이트
+      config.dataUrl = altBuildUrl + "/WhatQuizShow.data";
+      config.frameworkUrl = altBuildUrl + "/WhatQuizShow.framework.js";
+      config.codeUrl = altBuildUrl + "/WhatQuizShow.wasm";
+      config.streamingAssetsUrl = "./StreamingAssets";
+      
+      retryScript.onerror = function() {
+        // 두 번째 시도도 실패하면 오류 표시
+        console.error("대체 경로로도 Unity 로더 스크립트 로드 실패");
+        showError("게임 파일을 불러올 수 없습니다. 인터넷 연결을 확인하고 다시 시도해주세요.");
+      };
+      
+      retryScript.onload = createUnityLoader(config, altBuildUrl);
+      document.body.appendChild(retryScript);
+    };
+
+    script.onload = createUnityLoader(config, buildUrl);
+    document.body.appendChild(script);
   }
 
-  loadingBar.style.display = "block";
-
-  // 로컬 스토리지에 현재 버전 확인 및 저장
-  var currentVersion = "1.0.0"; // 앱 버전, 업데이트 시 변경
-  var storedVersion = localStorage.getItem("whatQuizVersion");
-
-  // 버전이 다르면 캐시 버스트 매개변수 추가
-  var cacheBuster = (storedVersion !== currentVersion) ? "?v=" + Date.now() : "";
-  localStorage.setItem("whatQuizVersion", currentVersion);
-
-  // 로더 스크립트 로드
-  var script = document.createElement("script");
-  script.src = loaderUrl + cacheBuster;
-
-  // 오류 처리 추가
-  script.onerror = function() {
-    console.error("Unity 로더 스크립트 로드 실패");
-    unityShowBanner("게임 로딩에 실패했습니다. 페이지를 새로고침 해주세요.", "error");
-  };
-
-  script.onload = function() {
-    // 모든 Unity 관련 URL에 같은 캐시 버스트 매개변수 추가
-    if (cacheBuster) {
+  // Unity 로더 생성 함수
+  function createUnityLoader(config, buildUrl) {
+    return function() {
+      // 모든 Unity 관련 URL에 같은 캐시 버스트 매개변수 추가
+      var cacheBuster = "?v=" + Date.now();
       config.dataUrl = config.dataUrl + cacheBuster;
       config.frameworkUrl = config.frameworkUrl + cacheBuster;
       config.codeUrl = config.codeUrl + cacheBuster;
       config.streamingAssetsUrl = config.streamingAssetsUrl + cacheBuster;
-    }
 
-    // Unity 인스턴스 생성 시작
-    console.log("[Main] Unity 인스턴스 생성 시작");
-    createUnityInstance(canvas, config, function(progress) {
-      // 로딩 진행률 업데이트
-      progressBarFull.style.width = 100 * progress + "%";
-      loadingPercentage.innerHTML = Math.round(progress * 100) + "%";
-    }).then(function(unityInstance) {
-      // 로딩 완료 시 로딩 바 숨김
-      console.log("[Main] Unity 인스턴스 생성 성공");
-      loadingBar.style.display = "none";
+      console.log("[Main] Unity 인스턴스 생성 시작 - 빌드 경로:", buildUrl);
+      createUnityInstance(canvas, config, function(progress) {
+        // 로딩 진행률 업데이트
+        progressBarFull.style.width = 100 * progress + "%";
+        loadingPercentage.innerHTML = Math.round(progress * 100) + "%";
+      }).then(function(unityInstance) {
+        // 로딩 완료 시 로딩 바 숨김
+        console.log("[Main] Unity 인스턴스 생성 성공");
+        loadingBar.style.display = "none";
 
-      // 전역 변수로 unityInstance 저장 (JavaScript 브릿지에서 사용)
-      window.unityInstance = unityInstance;
+        // 전역 변수로 unityInstance 저장 (JavaScript 브릿지에서 사용)
+        window.unityInstance = unityInstance;
 
-      // 전체 화면 처리를 위한 이벤트 리스너
-      window.addEventListener('resize', function() {
-        if (unityInstance) {
-          unityInstance.SendMessage('Canvas', 'OnWindowResize');
-        }
-      });
-
-      // URL 매개변수가 있는 경우 Unity에 전달
-      if (quizId) {
-        console.log("퀴즈 ID 발견:", quizId, "Unity에 전달");
-        // AppInitializer 또는 적절한 GameObject에 메시지 전달
-        setTimeout(() => {
+        // 전체 화면 처리를 위한 이벤트 리스너
+        window.addEventListener('resize', function() {
           if (unityInstance) {
-            unityInstance.SendMessage('AppInitializer', 'SetQuizId', quizId);
+            unityInstance.SendMessage('Canvas', 'OnWindowResize');
           }
-        }, 1000); // Unity 초기화를 위한 약간의 지연
-      }
-    }).catch(function(message) {
-      console.error("[Main] Unity 인스턴스 생성 실패:", message);
-      unityShowBanner("게임 초기화에 실패했습니다: " + message, "error");
-    });
-  };
+        });
 
-  document.body.appendChild(script);
+        // URL 매개변수가 있는 경우 Unity에 전달
+        if (quizId) {
+          console.log("퀴즈 ID 발견:", quizId, "Unity에 전달");
+          // AppInitializer 또는 적절한 GameObject에 메시지 전달
+          setTimeout(() => {
+            if (unityInstance) {
+              unityInstance.SendMessage('AppInitializer', 'SetQuizId', quizId);
+            }
+          }, 1000); // Unity 초기화를 위한 약간의 지연
+        }
+      }).catch(function(message) {
+        console.error("[Main] Unity 인스턴스 생성 실패:", message);
+        showError("게임 초기화에 실패했습니다: " + message);
+      });
+    };
+  }
+
+  // 게임 로딩 시작
+  loadUnityGame();
+  
+  // 오류 발생 시 일정 시간 후 재시도 버튼 활성화
+  setTimeout(function() {
+    var retryButton = document.getElementById('retry-button');
+    if (retryButton) {
+      retryButton.disabled = false;
+    }
+  }, 3000);
 </script>
 </body>
 </html>
